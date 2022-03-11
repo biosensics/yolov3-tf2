@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "yolov3-tf2"
+name = "yolov3"
 version = "0.1.0"
 description = "clean implementation of YoloV3 in TensorFlow 2.0 using all the best practices"
 authors = ["Zihao Zhang <zzh882@gmail.com>, Raghu Mulukutla <raghu.tjm@gmail.com>"]
@@ -12,6 +12,7 @@ opencv-python = "^4.5.5"
 keras = "^2.8.0"
 tqdm = "^4.63.0"
 lxml = "^4.8.0"
+absl-py = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 
@@ -19,9 +20,6 @@ lxml = "^4.8.0"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-packages = [
-    { include = "yolov3" },
-]
 
 [tool.githooks]
 pre-commit = "black --line-length 79 ."
