@@ -11,7 +11,7 @@ from keras.callbacks import (
     ModelCheckpoint,
     TensorBoard,
 )
-from yolov3_tf2.models import (
+from yolov3.models import (
     YoloV3,
     YoloV3Tiny,
     YoloLoss,
@@ -20,8 +20,8 @@ from yolov3_tf2.models import (
     yolo_tiny_anchors,
     yolo_tiny_anchor_masks,
 )
-from yolov3_tf2.utils import freeze_all
-import yolov3_tf2.dataset as dataset
+from yolov3.utils import freeze_all
+import yolov3.dataset as dataset
 
 flags.DEFINE_string("dataset", "", "path to dataset")
 flags.DEFINE_string("val_dataset", "", "path to validation dataset")
