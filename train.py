@@ -5,7 +5,9 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import time
-from keras.callbacks import (
+
+from keras.callbacks import ReduceLROnPlateau
+from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
     EarlyStopping,
     ModelCheckpoint,

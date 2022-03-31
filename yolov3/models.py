@@ -2,8 +2,8 @@ from absl import flags
 from absl.flags import FLAGS
 import numpy as np
 import tensorflow as tf
-from keras import Model
-from keras.layers import (
+from tensorflow.keras import Model
+from tensorflow.keras.layers import (
     Add,
     Concatenate,
     Conv2D,
@@ -15,8 +15,8 @@ from keras.layers import (
     ZeroPadding2D,
     BatchNormalization,
 )
-from keras.regularizers import l2
-from keras.losses import (
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.losses import (
     binary_crossentropy,
     sparse_categorical_crossentropy,
 )
