@@ -78,7 +78,11 @@ def setup_model():
         anchors = yolo_tiny_anchors
         anchor_masks = yolo_tiny_anchor_masks
     else:
-        model = YoloV3(FLAGS.size, training=True, classes=FLAGS.num_classes, yolo_max_boxes=110)
+        model = YoloV3(
+            FLAGS.size,
+            training=True,
+            classes=FLAGS.num_classes,
+        )
         anchors = yolo_anchors
         anchor_masks = yolo_anchor_masks
 
