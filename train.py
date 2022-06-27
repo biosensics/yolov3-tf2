@@ -13,6 +13,7 @@ from tensorflow.keras.callbacks import (
     ModelCheckpoint,
     TensorBoard,
 )
+from tensorflow.keras.layers import GaussianNoise
 from yolov3.models import (
     YoloV3,
     YoloV3Tiny,
@@ -25,6 +26,9 @@ from yolov3.models import (
 from yolov3.utils import freeze_all
 import yolov3.dataset as dataset
 
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 flags.DEFINE_string("dataset", "", "path to dataset")
 flags.DEFINE_string("val_dataset", "", "path to validation dataset")
 flags.DEFINE_boolean("tiny", False, "yolov3 or yolov3-tiny")
@@ -42,7 +46,7 @@ flags.DEFINE_enum(
 )
 flags.DEFINE_enum(
     "transfer",
-    "none",
+    "darknet",
     ["none", "darknet", "no_output", "frozen", "fine_tune"],
     "none: Training from scratch, "
     "darknet: Transfer darknet, "
@@ -50,14 +54,14 @@ flags.DEFINE_enum(
     "frozen: Transfer and freeze all, "
     "fine_tune: Transfer all and freeze darknet only",
 )
-flags.DEFINE_integer("size", 416, "image size")
-flags.DEFINE_integer("epochs", 2, "number of epochs")
-flags.DEFINE_integer("batch_size", 8, "batch size")
+flags.DEFINE_integer("size", 256, "image size")
+flags.DEFINE_integer("epochs", 100, "number of epochs")
+flags.DEFINE_integer("batch_size", 16, "batch size")
 flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
-flags.DEFINE_integer("num_classes", 80, "number of classes in the model")
+flags.DEFINE_integer("num_classes", 1, "number of classes in the model")
 flags.DEFINE_integer(
     "weights_num_classes",
-    None,
+    80,
     "specify num class for `weights` file if different, "
     "useful in transfer learning with different number of classes",
 )
@@ -74,7 +78,7 @@ def setup_model():
         anchors = yolo_tiny_anchors
         anchor_masks = yolo_tiny_anchor_masks
     else:
-        model = YoloV3(FLAGS.size, training=True, classes=FLAGS.num_classes)
+        model = YoloV3(FLAGS.size, training=True, classes=FLAGS.num_classes, yolo_max_boxes=110)
         anchors = yolo_anchors
         anchor_masks = yolo_anchor_masks
 
@@ -161,12 +165,22 @@ def main(_argv):
         train_dataset = dataset.load_fake_dataset()
     train_dataset = train_dataset.shuffle(buffer_size=512)
     train_dataset = train_dataset.batch(FLAGS.batch_size)
+
+    # data augmentation just for training
+    augmentation = tf.keras.Sequential(
+        [
+            GaussianNoise(0.25),
+        ]
+    )
     train_dataset = train_dataset.map(
-        lambda x, y: (
-            dataset.transform_images(x, FLAGS.size),
+        lambda x, y, z: (
+            dataset.transform_images(
+                augmentation(x, training=True), FLAGS.size
+            ),
             dataset.transform_targets(y, anchors, anchor_masks, FLAGS.size),
         )
     )
+
     train_dataset = train_dataset.prefetch(
         buffer_size=tf.data.experimental.AUTOTUNE
     )
@@ -179,7 +193,7 @@ def main(_argv):
         val_dataset = dataset.load_fake_dataset()
     val_dataset = val_dataset.batch(FLAGS.batch_size)
     val_dataset = val_dataset.map(
-        lambda x, y: (
+        lambda x, y, z: (
             dataset.transform_images(x, FLAGS.size),
             dataset.transform_targets(y, anchors, anchor_masks, FLAGS.size),
         )
@@ -249,7 +263,7 @@ def main(_argv):
 
         callbacks = [
             ReduceLROnPlateau(verbose=1),
-            EarlyStopping(patience=3, verbose=1),
+            EarlyStopping(patience=5, verbose=1),
             ModelCheckpoint(
                 "checkpoints/yolov3_train_{epoch}.tf",
                 verbose=1,
