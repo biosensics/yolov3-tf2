@@ -22,11 +22,12 @@ from tensorflow.keras.losses import (
 )
 from .utils import broadcast_iou
 
-flags.DEFINE_integer(
-    "yolo_max_boxes", 100, "maximum number of boxes per image"
-)
-flags.DEFINE_float("yolo_iou_threshold", 0.5, "iou threshold")
-flags.DEFINE_float("yolo_score_threshold", 0.5, "score threshold")
+
+YOLO_MAX_BOXES = "yolo_max_boxes"
+YOLO_IOU_THRESHOLD = "yolo_iou_threshold"
+YOLO_SCORE_THRESHOLD = "yolo_score_threshold"
+L2_REG = "l2_reg"
+
 
 yolo_anchors = (
     np.array(
@@ -69,7 +70,7 @@ def DarknetConv(x, filters, size, strides=1, batch_norm=True):
         strides=strides,
         padding=padding,
         use_bias=not batch_norm,
-        kernel_regularizer=l2(0.0005),
+        kernel_regularizer=l2(FLAGS.l2_reg),
     )(x)
     if batch_norm:
         x = BatchNormalization()(x)
@@ -287,7 +288,16 @@ def YoloV3(
     masks=yolo_anchor_masks,
     classes=80,
     training=False,
+    yolo_max_boxes=100,
+    yolo_iou_threshold=0.5,
+    yolo_score_threshold=0.5,
+    l2_reg=0.02,
 ):
+    # set flag values dynamically
+    set_yolo_config_flags(
+        yolo_max_boxes, yolo_iou_threshold, yolo_score_threshold, l2_reg
+    )
+
     x = inputs = Input([size, size, channels], name="input")
 
     x_36, x_61, x = Darknet(name="yolo_darknet")(x)
@@ -331,7 +341,16 @@ def YoloV3Tiny(
     masks=yolo_tiny_anchor_masks,
     classes=80,
     training=False,
+    yolo_max_boxes=100,
+    yolo_iou_threshold=0.5,
+    yolo_score_threshold=0.5,
+    l2_reg=0.02,
 ):
+    # set flag values dynamically
+    set_yolo_config_flags(
+        yolo_max_boxes, yolo_iou_threshold, yolo_score_threshold, l2_reg
+    )
+
     x = inputs = Input([size, size, channels], name="input")
 
     x_8, x = DarknetTiny(name="yolo_darknet")(x)
@@ -359,7 +378,15 @@ def YoloV3Tiny(
     return Model(inputs, outputs, name="yolov3_tiny")
 
 
-def YoloLoss(anchors, classes=80, ignore_thresh=0.5):
+def YoloLoss(
+    anchors,
+    classes=80,
+    ignore_thresh=0.5,
+    yolo_max_boxes=100,
+    yolo_iou_threshold=0.5,
+    yolo_score_threshold=0.5,
+    l2_reg=0.02,
+):
     def yolo_loss(y_true, y_pred):
         # 1. transform all pred outputs
         # y_pred: (batch_size, grid, grid, anchors, (x, y, w, h, obj, ...cls))
@@ -435,4 +462,37 @@ def YoloLoss(anchors, classes=80, ignore_thresh=0.5):
 
         return xy_loss + wh_loss + obj_loss + class_loss
 
+    # set flag values dynamically
+    set_yolo_config_flags(
+        yolo_max_boxes, yolo_iou_threshold, yolo_score_threshold, l2_reg
+    )
+
     return yolo_loss
+
+
+def set_yolo_config_flags(
+    yolo_max_boxes: int = 100,
+    yolo_iou_threshold=0.5,
+    yolo_score_threshold=0.5,
+    l2_reg=0.02,
+):
+    """
+    Dynamically set flags for yolov3.
+
+    Args:
+        yolo_max_boxes (int): maximum number of boxes per image
+        yolo_iou_threshold (int): iou threshold
+        yolo_score_threshold (int): score threshold
+        l2_reg (int): regularization
+    """
+    if YOLO_MAX_BOXES not in FLAGS._flags():
+        flags.DEFINE_integer(
+            YOLO_MAX_BOXES, yolo_max_boxes, "maximum number of boxes per image"
+        )
+        flags.DEFINE_float(
+            YOLO_IOU_THRESHOLD, yolo_iou_threshold, "iou threshold"
+        )
+        flags.DEFINE_float(
+            YOLO_SCORE_THRESHOLD, yolo_score_threshold, "score threshold"
+        )
+        flags.DEFINE_float(L2_REG, l2_reg, "regularization")

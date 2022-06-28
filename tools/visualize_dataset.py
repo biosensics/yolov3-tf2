@@ -23,7 +23,7 @@ def main(_argv):
     dataset = load_tfrecord_dataset(FLAGS.dataset, FLAGS.classes, FLAGS.size)
     dataset = dataset.shuffle(512)
 
-    for image, labels in dataset.take(1):
+    for image, labels, filename in dataset.take(1):
         boxes = []
         scores = []
         classes = []
@@ -50,7 +50,9 @@ def main(_argv):
             )
 
         img = cv2.cvtColor(image.numpy(), cv2.COLOR_RGB2BGR)
-        img = draw_outputs(img, (boxes, scores, classes, nums), class_names)
+        img = draw_outputs(
+            img, (boxes, scores, classes, range(nums[0])), class_names
+        )
         cv2.imwrite(FLAGS.output, img)
         logging.info("output saved to: {}".format(FLAGS.output))
 
